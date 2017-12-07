@@ -35,6 +35,7 @@ using System;
 using System.IO;
 using System.Text;
 using NLog.Config;
+using NLog.MessageTemplates;
 
 namespace NLog.Internal
 {
@@ -59,11 +60,11 @@ namespace NLog.Internal
             }
             else if (format == "@")
             {
-                MessageTemplates.ValueSerializer.Instance.SerializeObject(value, null, formatProvider, builder);
+                ValueSerializer.Instance.SerializeObject(value, null, formatProvider, builder);
             }
             else if (value != null)
             {
-                MessageTemplates.ValueSerializer.Instance.FormatObject(value, format, formatProvider, builder);
+                ValueSerializer.Instance.FormatObject(value, format, formatProvider, builder);
             }
         }
 
@@ -78,7 +79,7 @@ namespace NLog.Internal
             if (value < 0)
             {
                 builder.Append('-');
-                uint uint_value = UInt32.MaxValue - ((uint)value) + 1; //< This is to deal with Int32.MinValue
+                uint uint_value = uint.MaxValue - ((uint)value) + 1; //< This is to deal with Int32.MinValue
                 AppendInvariant(builder, uint_value);
             }
             else
@@ -183,6 +184,46 @@ namespace NLog.Internal
         }
 
         /// <summary>
+        /// Copies the contents of the StringBuilder to the destination StringBuilder
+        /// </summary>
+        /// <param name="builder">StringBuilder source</param>
+        /// <param name="destination">StringBuilder destination</param>
+        public static void CopyTo(this StringBuilder builder, StringBuilder destination)
+        {
+            int sourceLength = builder.Length;
+            if (sourceLength > 0)
+            {
+                destination.EnsureCapacity(sourceLength + destination.Length);
+                if (sourceLength < 8)
+                {
+                    // Skip char-buffer allocation for small strings
+                    for (int i = 0; i < sourceLength; ++i)
+                        destination.Append(builder[i]);
+                }
+                else if (sourceLength < 512)
+                {
+                    // Single char-buffer allocation through string-object
+                    destination.Append(builder.ToString());
+                }
+                else
+                {
+#if !SILVERLIGHT
+                    // Reuse single char-buffer allocation for large StringBuilders
+                    char[] buffer = new char[256];
+                    for (int i = 0; i < sourceLength; i += buffer.Length)
+                    {
+                        int charCount = Math.Min(sourceLength - i, buffer.Length);
+                        builder.CopyTo(i, buffer, 0, charCount);
+                        destination.Append(buffer, 0, charCount);
+                    }
+#else
+                    destination.Append(builder.ToString());
+#endif
+                }
+            }
+        }
+
+        /// <summary>
         /// Append a number and pad with 0 to 2 digits
         /// </summary>
         /// <param name="builder">append to this</param>
@@ -204,6 +245,40 @@ namespace NLog.Internal
             builder.Append((char)(((number / 100) % 10) + '0'));
             builder.Append((char)(((number / 10) % 10) + '0'));
             builder.Append((char)(((number / 1) % 10) + '0'));
+        }
+
+        internal static void AppendIntegerAsString(this StringBuilder sb, object value, TypeCode objTypeCode)
+        {
+            switch (objTypeCode)
+            {
+                case TypeCode.Byte: sb.AppendInvariant((byte)value); break;
+                case TypeCode.SByte: sb.AppendInvariant((sbyte)value); break;
+                case TypeCode.Int16: sb.AppendInvariant((short)value); break;
+                case TypeCode.Int32: sb.AppendInvariant((int)value); break;
+                case TypeCode.Int64:
+                {
+                    long int64 = (long)value;
+                    if (int64 < int.MaxValue && int64 > int.MinValue)
+                        sb.AppendInvariant((int)int64);
+                    else
+                        sb.Append(int64);
+                }
+                    break;
+                case TypeCode.UInt16: sb.AppendInvariant((ushort)value); break;
+                case TypeCode.UInt32: sb.AppendInvariant((uint)value); break;
+                case TypeCode.UInt64:
+                {
+                    ulong uint64 = (ulong)value;
+                    if (uint64 < uint.MaxValue)
+                        sb.AppendInvariant((uint)uint64);
+                    else
+                        sb.Append(uint64);
+                }
+                    break;
+                default:
+                    sb.Append(XmlHelper.XmlConvertToString(value, objTypeCode));
+                    break;
+            }
         }
     }
 }

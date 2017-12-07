@@ -194,6 +194,11 @@ namespace NLog
         public StackTrace StackTrace => CallSiteInformation?.StackTrace;
 
         /// <summary>
+        /// Gets the callsite class name
+        /// </summary>
+        public string CallerClassName => CallSiteInformation?.CallerClassName;
+
+        /// <summary>
         /// Gets the callsite member function name
         /// </summary>
         public string CallerMemberName => CallSiteInformation?.GetCallerMemberName(null, false, true, true);
@@ -398,7 +403,7 @@ namespace NLog
         /// <returns>Null log event.</returns>
         public static LogEventInfo CreateNullEvent()
         {
-            return new LogEventInfo(LogLevel.Off, String.Empty, String.Empty);
+            return new LogEventInfo(LogLevel.Off, string.Empty, string.Empty);
         }
 
         /// <summary>
@@ -516,12 +521,13 @@ namespace NLog
         /// <summary>
         /// Sets the details retrieved from the Caller Information Attributes
         /// </summary>
+        /// <param name="callerClassName"></param>
         /// <param name="callerMemberName"></param>
         /// <param name="callerFilePath"></param>
         /// <param name="callerLineNumber"></param>
-        public void SetCallerInfo(string callerMemberName, string callerFilePath, int callerLineNumber)
+        public void SetCallerInfo(string callerClassName, string callerMemberName, string callerFilePath, int callerLineNumber)
         {
-            GetCallSiteInformationInternal().SetCallerInfo(callerMemberName, callerFilePath, callerLineNumber);
+            GetCallSiteInformationInternal().SetCallerInfo(callerClassName, callerMemberName, callerFilePath, callerLineNumber);
         }
 
         internal string AddCachedLayoutValue(Layout layout, string value)
@@ -610,7 +616,7 @@ namespace NLog
             }
             else
             {
-                return String.Format(logEvent.FormatProvider ?? CultureInfo.CurrentCulture, logEvent.Message, logEvent.Parameters);
+                return string.Format(logEvent.FormatProvider ?? CultureInfo.CurrentCulture, logEvent.Message, logEvent.Parameters);
             }
         }
 

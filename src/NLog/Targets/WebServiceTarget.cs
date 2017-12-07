@@ -328,7 +328,15 @@ namespace NLog.Targets
                     AsyncContinuation groupCompleted = (ex) =>
                     {
                         for (int i = 0; i < groupContinuations.Length; ++i)
-                            try { groupContinuations[i].Invoke(ex); } catch { /* Nothing to do about it */ };
+                            try
+                            {
+                                groupContinuations[i].Invoke(ex);
+                            }
+                            catch (Exception ex2)
+                            {
+                                InternalLogger.Trace(ex2, "Exception in Webservice invoke, but ignoring it.");
+                                 /* Nothing to do about it */
+                            };
                     };
                     DoGroupInvokeAsync(headerValues, bucket.Key, groupCompleted);
                 }
@@ -453,7 +461,7 @@ namespace NLog.Targets
                 case WebServiceProxyType.NoProxy:
                     request.Proxy = null;
                     break;
-#if!NETSTANDARD1_5
+#if !NETSTANDARD1_0
                 case WebServiceProxyType.AutoProxy:
                     if (_activeProxy.Value == null)
                     {
@@ -478,7 +486,7 @@ namespace NLog.Targets
             }
 #endif
 
-#if !SILVERLIGHT && !NETSTANDARD1_5
+#if !SILVERLIGHT && !NETSTANDARD1_0
             if (PreAuthenticate || ProxyType == WebServiceProxyType.AutoProxy)
             {
                 request.PreAuthenticate = true;
@@ -504,6 +512,13 @@ namespace NLog.Targets
                 postPayload = _activeProtocol.Value.PrepareRequest(request, parameters);
             }
 
+            var sendContinuation = CreateSendContinuation(continuation, request);
+
+            PostPayload(continuation, beginFunc, getStreamFunc, postPayload, sendContinuation);
+        }
+
+        private AsyncContinuation CreateSendContinuation(AsyncContinuation continuation, HttpWebRequest request)
+        {
             AsyncContinuation sendContinuation =
                 ex =>
                 {
@@ -531,7 +546,7 @@ namespace NLog.Targets
                                     InternalLogger.Error(ex2, "Error when sending to Webservice: {0}", Name);
                                     if (ex2.MustBeRethrownImmediately())
                                     {
-                                        throw;  // Throwing exceptions here will crash the entire application (.NET 2.0 behavior)
+                                        throw; // Throwing exceptions here will crash the entire application (.NET 2.0 behavior)
                                     }
 
                                     DoInvokeCompleted(continuation, ex2);
@@ -550,7 +565,11 @@ namespace NLog.Targets
                         DoInvokeCompleted(continuation, ex2);
                     }
                 };
+            return sendContinuation;
+        }
 
+        private void PostPayload(AsyncContinuation continuation, Func<AsyncCallback, IAsyncResult> beginFunc, Func<IAsyncResult, Stream> getStreamFunc, Stream postPayload, AsyncContinuation sendContinuation)
+        {
             if (postPayload != null && postPayload.Length > 0)
             {
                 postPayload.Position = 0;
@@ -577,7 +596,7 @@ namespace NLog.Targets
                                 InternalLogger.Error(ex, "Error when sending to Webservice: {0}", Name);
                                 if (ex.MustBeRethrownImmediately())
                                 {
-                                    throw;  // Throwing exceptions here will crash the entire application (.NET 2.0 behavior)
+                                    throw; // Throwing exceptions here will crash the entire application (.NET 2.0 behavior)
                                 }
 
                                 postPayload.Dispose();

@@ -31,7 +31,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
-#if !SILVERLIGHT && !__IOS__&& !__ANDROID__ && !NETSTANDARD1_5
+#if !SILVERLIGHT && !__IOS__&& !__ANDROID__ && !NETSTANDARD1_0
 
 namespace NLog
 {
@@ -503,7 +503,7 @@ namespace NLog
                             break;
 
                         case "DISABLEFLUSH":
-                            _disableFlush = Boolean.Parse(value);
+                            _disableFlush = bool.Parse(value);
                             break;
                     }
                 }

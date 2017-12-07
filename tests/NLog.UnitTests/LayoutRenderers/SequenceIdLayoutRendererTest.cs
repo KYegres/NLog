@@ -1,4 +1,4 @@
-// 
+﻿// 
 // Copyright (c) 2004-2017 Jaroslaw Kowalski <jaak@jkowalski.net>, Kim Christensen, Julian Verdurmen
 // 
 // All rights reserved.
@@ -31,19 +31,19 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
-namespace NLog.Config
+namespace NLog.UnitTests.LayoutRenderers
 {
-    using System;
+    using System.Globalization;
+    using Xunit;
 
-    /// <summary>
-    /// Provides means to populate factories of named items (such as targets, layouts, layout renderers, etc.).
-    /// </summary>
-    internal interface IFactory
+    public class SequenceIdLayoutRendererTest : NLogTestBase
     {
-        void Clear();
 
-        void ScanTypes(Type[] type, string prefix);
-
-        void RegisterType(Type type, string itemNamePrefix);
+        [Fact]
+        public void RenderSequenceIdLayoutRenderer()
+        {
+            LogEventInfo logEventInfo = new LogEventInfo();
+            AssertLayoutRendererOutput("${sequenceid}", logEventInfo, logEventInfo.SequenceID.ToString(CultureInfo.InvariantCulture));
+        }
     }
 }

@@ -33,7 +33,7 @@
 
 using NLog.Internal;
 
-#if !SILVERLIGHT
+#if !SILVERLIGHT && !WINDOWS_UWP
 
 namespace NLog.LayoutRenderers
 {
@@ -41,7 +41,7 @@ namespace NLog.LayoutRenderers
     using System.IO;
     using System.Text;
 
-    using Config;
+    using NLog.Config;
 
     /// <summary>
     /// The directory where NLog.dll is located.
@@ -57,7 +57,7 @@ namespace NLog.LayoutRenderers
         static NLogDirLayoutRenderer()
         {
             var assembly = typeof(LogManager).GetAssembly();
-            var location = !String.IsNullOrEmpty(assembly.Location)
+            var location = !string.IsNullOrEmpty(assembly.Location)
                 ? assembly.Location
                 : new Uri(assembly.CodeBase).LocalPath;
             NLogDir = Path.GetDirectoryName(location);

@@ -1,4 +1,4 @@
-// 
+﻿// 
 // Copyright (c) 2004-2017 Jaroslaw Kowalski <jaak@jkowalski.net>, Kim Christensen, Julian Verdurmen
 // 
 // All rights reserved.
@@ -31,19 +31,27 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
-namespace NLog.Config
+namespace NLog.LayoutRenderers
 {
-    using System;
+    using Config;
+    using System.Globalization;
+    using System.Text;
 
     /// <summary>
-    /// Provides means to populate factories of named items (such as targets, layouts, layout renderers, etc.).
+    /// The sequence ID
     /// </summary>
-    internal interface IFactory
+    [LayoutRenderer("sequenceid")]
+    [ThreadAgnostic]
+    public class SequenceIdLayoutRenderer : LayoutRenderer
     {
-        void Clear();
-
-        void ScanTypes(Type[] type, string prefix);
-
-        void RegisterType(Type type, string itemNamePrefix);
+        /// <summary>
+        /// Renders the current log sequence ID and appends it to the specified <see cref="StringBuilder"/>.
+        /// </summary>
+        /// <param name="builder">The <see cref="StringBuilder"/> to append the rendered data to.</param>
+        /// <param name="logEvent">Logging event.</param>
+        protected override void Append(StringBuilder builder, LogEventInfo logEvent)
+        {
+            builder.Append(logEvent.SequenceID.ToString(CultureInfo.InvariantCulture));
+        }
     }
 }

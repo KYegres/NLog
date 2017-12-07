@@ -65,7 +65,8 @@ namespace NLog.Internal
         /// <summary>
         /// Gets a value indicating whether current runtime is Mono-based
         /// </summary>
-        public static bool IsMono => Type.GetType("Mono.Runtime") != null;
+        public static bool IsMono => _isMono ?? (_isMono = Type.GetType("Mono.Runtime") != null).Value;
+        private static bool? _isMono;
 
         /// <summary>
         /// Gets a value indicating whether current runtime supports use of mutex
@@ -74,7 +75,9 @@ namespace NLog.Internal
         {
             get
             {
-#if NETSTANDARD1_5
+#if WINDOWS_UWP
+                return false;
+#elif NETSTANDARD1_0
                 return true;
 #elif !SILVERLIGHT && !__ANDROID__ && !__IOS__
                 // Unfortunately, Xamarin Android and Xamarin iOS don't support mutexes (see https://github.com/mono/mono/blob/3a9e18e5405b5772be88bfc45739d6a350560111/mcs/class/corlib/System.Threading/Mutex.cs#L167) 
@@ -90,7 +93,7 @@ namespace NLog.Internal
 
         private static RuntimeOS GetCurrentRuntimeOS()
         {
-#if NETSTANDARD1_5
+#if NETSTANDARD1_0
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
                 return RuntimeOS.Windows;
             else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))

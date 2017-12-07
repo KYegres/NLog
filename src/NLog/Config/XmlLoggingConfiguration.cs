@@ -38,21 +38,20 @@ namespace NLog.Config
     using System;
     using System.Collections;
     using System.Collections.Generic;
-    using System.Diagnostics;
+    using System.Collections.ObjectModel;
     using System.Globalization;
-    using System.Linq;
     using System.IO;
+    using System.Linq;
     using System.Reflection;
     using System.Xml;
-    using Common;
-    using Filters;
-    using Internal;
-    using Layouts;
-    using Targets;
-    using Targets.Wrappers;
-    using LayoutRenderers;
-    using Time;
-    using System.Collections.ObjectModel;
+    using NLog.Common;
+    using NLog.Filters;
+    using NLog.Internal;
+    using NLog.LayoutRenderers;
+    using NLog.Layouts;
+    using NLog.Targets;
+    using NLog.Targets.Wrappers;
+    using NLog.Time;
 #if SILVERLIGHT
 // ReSharper disable once RedundantUsingDirective
     using System.Windows;
@@ -490,7 +489,7 @@ namespace NLog.Config
             ReadOnlyCollection<Target> configuredNamedTargets = ConfiguredNamedTargets; //assign to variable because `ConfiguredNamedTargets` computes a new list every time.
             InternalLogger.Debug("Unused target checking is started... Rule Count: {0}, Target Count: {1}", LoggingRules.Count, configuredNamedTargets.Count);
 
-            HashSet<string> targetNamesAtRules = new HashSet<string>(LoggingRules.SelectMany(r => r.Targets).Select(t => t.Name));
+            HashSet<string> targetNamesAtRules = new HashSet<string>(GetLoggingRulesThreadSafe().SelectMany(r => r.Targets).Select(t => t.Name));
             HashSet<string> wrappedTargetNames = new HashSet<string>(configuredNamedTargets.OfType<WrapperTargetBase>().Select(wt => wt.WrappedTarget.Name));
 
 
@@ -651,7 +650,6 @@ namespace NLog.Config
                 }
             }
 
-
             foreach (var ruleChild in rulesList)
             {
                 ParseRulesElement(ruleChild, LoggingRules);
@@ -720,6 +718,31 @@ namespace NLog.Config
 
             rule.Final = loggerElement.GetOptionalBooleanAttribute("final", false);
 
+            ParseLevels(loggerElement, rule);
+
+            var children = loggerElement.Children.ToList();
+            foreach (var child in children)
+            {
+                switch (child.LocalName.ToUpperInvariant())
+                {
+                    case "FILTERS":
+                        ParseFilters(rule, child);
+                        break;
+
+                    case "LOGGER":
+                        ParseLoggerElement(child, rule.ChildRules);
+                        break;
+                }
+            }
+
+            lock (rulesCollection)
+            {
+                rulesCollection.Add(rule);
+            }
+        }
+
+        private static void ParseLevels(NLogXmlElement loggerElement, LoggingRule rule)
+        {
             string levelString;
 
             if (loggerElement.AttributeValues.TryGetValue("level", out levelString))
@@ -763,23 +786,6 @@ namespace NLog.Config
                     rule.EnableLoggingForLevel(LogLevel.FromOrdinal(i));
                 }
             }
-
-            var children = loggerElement.Children.ToList();
-            foreach (var child in children)
-            {
-                switch (child.LocalName.ToUpperInvariant())
-                {
-                    case "FILTERS":
-                        ParseFilters(rule, child);
-                        break;
-
-                    case "LOGGER":
-                        ParseLoggerElement(child, rule.ChildRules);
-                        break;
-                }
-            }
-
-            rulesCollection.Add(rule);
         }
 
         private void ParseFilters(LoggingRule rule, NLogXmlElement filtersElement)
@@ -1020,12 +1026,14 @@ namespace NLog.Config
                     }
                 }
 
+#if !WINDOWS_UWP
                 string assemblyFile = addElement.GetOptionalAttribute("assemblyFile", null);
                 if (assemblyFile != null)
                 {
                     ParseExtensionWithAssemblyFle(baseDirectory, assemblyFile, prefix);
                     continue;
                 }
+#endif
 
                 string assemblyName = addElement.GetOptionalAttribute("assembly", null);
                 if (assemblyName != null)
@@ -1060,6 +1068,7 @@ namespace NLog.Config
             }
         }
 
+#if !WINDOWS_UWP
         private void ParseExtensionWithAssemblyFle(string baseDirectory, string assemblyFile, string prefix)
         {
             try
@@ -1083,9 +1092,8 @@ namespace NLog.Config
                     throw configException;
                 }
             }
-
-            return;
         }
+#endif
 
         private void ParseIncludeElement(NLogXmlElement includeElement, string baseDirectory, bool autoReloadDefault)
         {

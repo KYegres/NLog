@@ -165,12 +165,7 @@ namespace NLog.Internal
         internal static Type GetArrayItemType(PropertyInfo propInfo)
         {
             var arrayParameterAttribute = propInfo.GetCustomAttribute<ArrayParameterAttribute>();
-            if (arrayParameterAttribute != null)
-            {
-                return arrayParameterAttribute.ItemType;
-            }
-
-            return null;
+            return arrayParameterAttribute?.ItemType;
         }
 
         internal static IEnumerable<PropertyInfo> GetAllReadableProperties(Type type)
@@ -379,7 +374,7 @@ namespace NLog.Internal
 
         private static bool TryTypeConverterConversion(Type type, string value, out object newValue)
         {
-#if !SILVERLIGHT
+#if !SILVERLIGHT && !WINDOWS_UWP
             var converter = TypeDescriptor.GetConverter(type);
             if (converter.CanConvertFrom(typeof(string)))
             {

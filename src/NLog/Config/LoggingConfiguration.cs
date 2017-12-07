@@ -104,6 +104,9 @@ namespace NLog.Config
         /// </summary>
         public IList<LoggingRule> LoggingRules { get; private set; }
 
+        internal List<LoggingRule> GetLoggingRulesThreadSafe() {  lock (LoggingRules) return LoggingRules.ToList(); }
+        private void AddLoggingRulesThreadSafe(LoggingRule rule) { lock (LoggingRules) LoggingRules.Add(rule); }
+
         /// <summary>
         /// Gets or sets the default culture info to use as <see cref="LogEventInfo.FormatProvider"/>.
         /// </summary>
@@ -129,7 +132,7 @@ namespace NLog.Config
         /// Compare <see cref="Target"/> objects based on their name.
         /// </summary>
         /// <remarks>This property is use to cache the comparer object.</remarks>
-        private readonly static IEqualityComparer<Target> TargetNameComparer = new TargetNameEqualityComparer();
+        private static readonly IEqualityComparer<Target> TargetNameComparer = new TargetNameEqualityComparer();
 
         /// <summary>
         /// Defines methods to support the comparison of <see cref="Target"/> objects for equality based on their name.
@@ -156,7 +159,7 @@ namespace NLog.Config
         /// <exception cref="ArgumentNullException">when <paramref name="target"/> is <see langword="null"/></exception>
         public void AddTarget([NotNull] Target target)
         {
-            if (target == null) { throw new ArgumentNullException("target"); }
+            if (target == null) { throw new ArgumentNullException(nameof(target)); }
             AddTarget(target.Name, target);
         }
 
@@ -176,10 +179,10 @@ namespace NLog.Config
             if (name == null)
             {
                 // TODO: NLog 5 - The ArgumentException should be changed to ArgumentNullException for name parameter.
-                throw new ArgumentException("Target name cannot be null", "name");
+                throw new ArgumentException("Target name cannot be null", nameof(name));
             }
 
-            if (target == null) { throw new ArgumentNullException("target"); }
+            if (target == null) { throw new ArgumentNullException(nameof(target)); }
 
             InternalLogger.Debug("Registering target {0}: {1}", name, target.GetType().FullName);
             _targets[name] = target;
@@ -196,9 +199,7 @@ namespace NLog.Config
         /// </returns>
         public Target FindTargetByName(string name)
         {
-            Target value;
-
-            if (!_targets.TryGetValue(name, out value))
+            if (!_targets.TryGetValue(name, out var value))
             {
                 return null;
             }
@@ -249,7 +250,8 @@ namespace NLog.Config
         /// <param name="loggerNamePattern">Logger name pattern. It may include the '*' wildcard at the beginning, at the end or at both ends.</param>
         public void AddRule(LogLevel minLevel, LogLevel maxLevel, Target target, string loggerNamePattern = "*")
         {
-            LoggingRules.Add(new LoggingRule(loggerNamePattern, minLevel, maxLevel, target));
+            if (target == null) { throw new ArgumentNullException(nameof(target)); }
+            AddLoggingRulesThreadSafe(new LoggingRule(loggerNamePattern, minLevel, maxLevel, target));
         }
 
         /// <summary>
@@ -277,9 +279,10 @@ namespace NLog.Config
         /// <param name="loggerNamePattern">Logger name pattern. It may include the '*' wildcard at the beginning, at the end or at both ends.</param>
         public void AddRuleForOneLevel(LogLevel level, Target target, string loggerNamePattern = "*")
         {
+            if (target == null) { throw new ArgumentNullException(nameof(target)); }
             var loggingRule = new LoggingRule(loggerNamePattern, target);
             loggingRule.EnableLoggingForLevel(level);
-            LoggingRules.Add(loggingRule);
+            AddLoggingRulesThreadSafe(loggingRule);
         }
 
         /// <summary>
@@ -305,9 +308,10 @@ namespace NLog.Config
         /// <param name="loggerNamePattern">Logger name pattern. It may include the '*' wildcard at the beginning, at the end or at both ends.</param>
         public void AddRuleForAllLevels(Target target, string loggerNamePattern = "*")
         {
+            if (target == null) { throw new ArgumentNullException(nameof(target)); }
             var loggingRule = new LoggingRule(loggerNamePattern, target);
             loggingRule.EnableLoggingForLevels(LogLevel.MinLevel, LogLevel.MaxLevel);
-            LoggingRules.Add(loggingRule);
+            AddLoggingRulesThreadSafe(loggingRule);
         }
 
         /// <summary>
@@ -463,8 +467,7 @@ namespace NLog.Config
             }
 
             InternalLogger.Debug("Rules:");
-            var loggingRules = LoggingRules.ToList();
-            foreach (LoggingRule rule in loggingRules)
+            foreach (LoggingRule rule in GetLoggingRulesThreadSafe())
             {
                 InternalLogger.Debug("{0}", rule);
             }
@@ -481,8 +484,7 @@ namespace NLog.Config
             InternalLogger.Trace("Flushing all targets...");
 
             var uniqueTargets = new List<Target>();
-            var loggingRules = LoggingRules.ToList();
-            foreach (var rule in loggingRules)
+            foreach (var rule in GetLoggingRulesThreadSafe())
             {
                 var targetList = rule.Targets.ToList();
                 foreach (var target in targetList)
@@ -504,8 +506,7 @@ namespace NLog.Config
         {
             var roots = new List<object>();
 
-            var loggingRules = LoggingRules.ToList();
-            foreach (LoggingRule rule in loggingRules)
+            foreach (LoggingRule rule in GetLoggingRulesThreadSafe())
             {
                 roots.Add(rule);
             }

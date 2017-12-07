@@ -31,7 +31,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
-#if !SILVERLIGHT && !__ANDROID__ && !__IOS__
+#if !SILVERLIGHT && !__ANDROID__ && !__IOS__ && !WINDOWS_UWP
 // Unfortunately, Xamarin Android and Xamarin iOS don't support mutexes (see https://github.com/mono/mono/blob/3a9e18e5405b5772be88bfc45739d6a350560111/mcs/class/corlib/System.Threading/Mutex.cs#L167) 
 #define SupportsMutex
 #endif
@@ -45,10 +45,10 @@ namespace NLog.Internal.FileAppenders
     using System.Text;
 
 #if SupportsMutex
-#if !NETSTANDARD1_5
+#if !NETSTANDARD1_0
     using System.Security.AccessControl;
-#endif
     using System.Security.Principal;
+#endif
     using System.Security.Cryptography;
     using Common;
 #endif

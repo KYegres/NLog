@@ -3,7 +3,7 @@
   <PropertyGroup>
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
 
-    <TargetFrameworks Condition=" '$(TargetFrameworks)' == '' ">net45;net40-client;net35;netstandard1.5;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(TargetFrameworks)' == '' ">net45;net40-client;net35;netstandard1.3;netstandard1.5;netstandard2.0</TargetFrameworks>
 
     <Title>NLog for .NET Framework and .NET Standard</Title>
     <Company>NLog</Company>
@@ -15,11 +15,64 @@
     <Copyright>Copyright (c) 2004-$(CurrentYear) NLog Project - http://nlog-project.org/ </Copyright>
     
     <PackageReleaseNotes>
-beta 8: Mail target for .NET standard,  &amp; many improvements
-      
-NLog 4.5 summary:      
- Structured logging
- NetStandard 2.0 support
+
+NLog 4.5 adds structured logging and .NET Standard support/UPW without breaking changes! Also a lot
+
+# RC 2 main features
+
+- Support for UWP
+- Added "regex-matches" condition method for filtering
+- .NET Core: Improve auto loading of NLog extension dlls
+- And more, see all details: https://github.com/NLog/NLog/milestone/58?closed=1
+
+# List of important changes in NLog 4.5
+
+## Features:
+
+- Support for .Net Standard 1.5 #2341
+- Support for .Net Standard 2.0 #2263 + #2402
+- Support for UPW #2441
+- Introduced Structured logging #2208 + #2262 + #2244
+- Default file archive logic is now easier to use #1993
+- Introduced InstallationContext.ThrowExceptions #2214
+- WebServiceTarget can now batch multiple logevents into single request #2223
+- WebServiceTarget - Allow configuration of proxy address #2375
+- Json conversion also supports object properties #2179
+- event-properties layout-renderer can now render objects as json #2241
+- exception layout-renderer can now render exceptions as json #2357
+- ${guid}, added GeneratedFromLogEvent #2226
+- TraceTarget RawWrite to always perform Trace.WriteLine independent of LogLevel #1968
+- Adding OverflowAction options to BufferingTargetWrapper #2276
+- WhenRepeatedFilter #2123 + #2297
+- ${callsite} added CleanNamesOfAsyncContinuations option #2292
+- ${ndlctiming} allows timing of ndlc-scopes #2377
+- NLogViewerTarget - Enable override of the Logger-name #2390
+- ${sequenceid} added #2411
+- Added "regex-matches" for filtering #2437
+
+## BugFixes:
+
+- Improve archive stability during concurrent file access #1889
+- FallbackGroup could lose log events #2265
+- Exception separator should only be inserted for available items #2250
+- ${exception} - only include separator when items are available #2257
+- LogFactory - Fixes broken EventArgs for ConfigurationChanged #1897
+- Do not report wrapped targets as unused targets #2290
+- Added IIncludeContext, implemented missing properties #2117
+- Improve logging of callsite linenumber for async-methods #2386
+- NLogTraceListener - DisableFlush is enabled by default when AutoFlush=true #2407
+- NLogViewer - Better defaults for connection limits #2404
+- LoggingConfiguration.LoggingRules is not thread safe #2393, 2418
+
+## Performance:
+
+- More targets has OptimizeBufferReuse enabled by default #1913 + #1923 + #1912 + #1911 + #1910 + #1909 + #1908 + #1907
+- StringBuilderPool - Improved Layout Render Performance by reusing StringBuilders #2208
+- JsonLayout - Improved Layout Performance, by optimizing use of StringBuilder #2208
+- FileTarget - Faster byte-encoding of log messsages, by using crude Encoding.GetMaxByteCount() instead of exact Encoding.GetByteCount() #2208
+- Target - Precalculate Layout should ignore sub-layouts for complex layout (Ex Json) #2378
+
+
     </PackageReleaseNotes>
     <PackageTags>NLog;logging;log;tracing;logfiles;database;eventlog;email;wcf</PackageTags>
     <PackageIconUrl>http://nlog-project.org/N.png</PackageIconUrl>
@@ -59,11 +112,32 @@ NLog 4.5 summary:
     <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
     <DefineConstants>$(DefineConstants);NET3_5;WCF_SUPPORTED</DefineConstants>
   </PropertyGroup>
+  
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'uap10.0' ">
+    <Title>NLog for UWP</Title>
+    <NugetTargetMoniker>UAP,Version=v10.0</NugetTargetMoniker>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
+    <DefineConstants>$(DefineConstants);NET4_5;NETSTANDARD;NETSTANDARD1_0;WINDOWS_UWP</DefineConstants>
+    <TargetFrameworkIdentifier>.NETCore</TargetFrameworkIdentifier>
+    <TargetFrameworkVersion>v5.0</TargetFrameworkVersion>
+    <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
+    <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.15083.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.10240.0</TargetPlatformMinVersion>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
+    <!-- Artificial TargetFramework to simulate restricted uap10.0. NetStandard1.3 will never support auto-flush-on-shutdown -->
+    <Title>NLog for NetStandard 1.3</Title>
+    <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <DefineConstants>$(DefineConstants);NET4_5;NETSTANDARD;NETSTANDARD1_0;WINDOWS_UWP</DefineConstants>
+  </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' ">
     <Title>NLog for NetStandard 1.5</Title>
     <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
-    <DefineConstants>$(DefineConstants);NET4_5;NETSTANDARD;NETSTANDARD1_5</DefineConstants>
+    <DefineConstants>$(DefineConstants);NET4_5;NETSTANDARD;NETSTANDARD1_0;NETSTANDARD1_5</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
@@ -227,14 +301,38 @@ NLog 4.5 summary:
     <PackageReference Include="System.IO.FileSystem.Watcher" Version="4.0.0" />
     <PackageReference Include="System.Net.NameResolution" Version="4.0.0" />
     <PackageReference Include="System.Net.Requests" Version="4.0.11" />
+    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.1.0" />
     <PackageReference Include="System.Runtime.Loader" Version="4.0.0" />
-    <PackageReference Include="System.Security.Principal" Version="4.0.1" />
     <PackageReference Include="System.Threading.Thread" Version="4.0.0" />
-    <PackageReference Include="System.Threading.ThreadPool" Version="4.0.10" />
     <PackageReference Include="System.Xml.XmlDocument" Version="4.0.1" />
-    <PackageReference Include="System.Xml.XmlSerializer" Version="4.0.11" />
   </ItemGroup>
-
+  
+  <ItemGroup Condition=" '$(TargetFramework)' == 'uap10.0' ">
+    <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform" Version="5.2.2" />
+  </ItemGroup>
+  
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="1.3.0" />
+    <PackageReference Include="System.Data.Common" Version="4.1.0" />
+    <PackageReference Include="System.Diagnostics.StackTrace" Version="4.0.1" />
+    <PackageReference Include="System.IO.Compression" Version="4.1.0" />
+    <PackageReference Include="System.Net.NameResolution" Version="4.0.0" />
+    <PackageReference Include="System.Net.Requests" Version="4.0.11" />
+    <PackageReference Include="System.Net.Sockets" Version="4.1.0" />
+    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.1.0" />
+    <PackageReference Include="System.Text.RegularExpressions" Version="4.1.0" />
+    <PackageReference Include="System.Threading" Version="4.0.11" />
+    <PackageReference Include="System.Threading.Timer" Version="4.0.1" />
+  </ItemGroup>
+  
+  <ItemGroup Condition=" '$(TargetFramework)' == 'uap10.0' or '$(TargetFramework)' == 'netstandard1.3' ">
+    <PackageReference Include="Microsoft.Extensions.PlatformAbstractions" Version="1.0.0" />
+    <PackageReference Include="System.Collections.NonGeneric" Version="4.0.1" />
+    <PackageReference Include="System.ComponentModel.Primitives" Version="4.1.0" />
+    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.0.0" />
+    <PackageReference Include="System.Xml.XmlDocument" Version="4.0.1" />
+  </ItemGroup>
+  
   <ItemGroup Condition=" '$(monobuild)' != '' ">
     <Reference Include="Mono.Posix" />
   </ItemGroup>

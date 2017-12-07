@@ -31,7 +31,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
-#if !SILVERLIGHT && !NETSTANDARD1_5
+#if !SILVERLIGHT && !NETSTANDARD1_0
 
 namespace NLog.LayoutRenderers
 {
@@ -106,14 +106,7 @@ namespace NLog.LayoutRenderers
                         builder.Append(separator);
                         separator = Separator;
 
-                        if (identity.IsAuthenticated)
-                        {
-                            builder.Append("auth");
-                        }
-                        else
-                        {
-                            builder.Append("notauth");
-                        }
+                        builder.Append(identity.IsAuthenticated ? "auth" : "notauth");
                     }
 
                     if (AuthType)

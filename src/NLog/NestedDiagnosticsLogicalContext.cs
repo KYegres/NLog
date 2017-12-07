@@ -62,9 +62,11 @@ namespace NLog
         /// Pops the top message off the NDLC stack.
         /// </summary>
         /// <returns>The top message which is no longer on the stack.</returns>
-        public static string Pop()
+        /// <remarks>this methods returns a object instead of string, this because of backwardscompatibility</remarks>
+        public static object Pop()
         {
-            return Pop(null);
+            //NLOG 5: return string (breaking change)
+            return PopObject();
         }
 
         /// <summary>
@@ -86,7 +88,7 @@ namespace NLog
             var current = GetThreadLocal();
             if (current != null)
                 SetThreadLocal(current.Parent);
-            return current != null ? current.Value : null;
+            return current?.Value;
         }
 
         /// <summary>
@@ -186,7 +188,7 @@ namespace NLog
             DateTime CreatedTime { get; }
         }
 
-#if !NETSTANDARD1_5
+#if !NETSTANDARD1_0
         [Serializable]
 #endif
         class NestedContext<T> : INestedContext
@@ -195,25 +197,29 @@ namespace NLog
             public T Value { get; private set; }
             object INestedContext.Value => Value;
             public DateTime CreatedTime { get; private set; }
-            public int FrameLevel { get; private set; }
+            public int FrameLevel => _frameLevel;
+            private int _frameLevel;
 
             public NestedContext(INestedContext parent, T value)
             {
                 Parent = parent;
                 Value = value;
                 CreatedTime = DateTime.UtcNow; // Low time resolution, but okay fast
-                FrameLevel = parent != null ? parent.FrameLevel + 1 : 1; 
+                _frameLevel = parent != null ? parent.FrameLevel + 1 : 1; 
             }
 
             void IDisposable.Dispose()
             {
-                PopObject();
+                if (System.Threading.Interlocked.Exchange(ref _frameLevel, 0) != 0)
+                {
+                    PopObject();
+                }
             }
 
             public override string ToString()
             {
                 object value = Value;
-                return value != null ? value.ToString() : "null";
+                return value?.ToString() ?? "null";
             }
         }
 
